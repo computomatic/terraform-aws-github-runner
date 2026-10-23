@@ -60,6 +60,16 @@ locals {
 
   token_path = "${var.ssm_paths.root}/${var.ssm_paths.tokens}"
 
+  # Ephemeral runners started with a JIT config, the same rule as the enable_jit_config parameter and scale-up.
+  jit_ephemeral = var.enable_ephemeral_runners && var.enable_jit_config != false
+
+  # The parameters the control plane writes: each runner's token or JIT config under the token path, and the runner group
+  # id it caches under the config path.
+  ssm_put_parameter_arns = [
+    "arn:${var.aws_partition}:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${local.token_path}/*",
+    "${local.arn_ssm_parameters_path_config}/runner-group/*",
+  ]
+
   user_data = var.enable_userdata ? (var.userdata_content == null ? templatefile(local.userdata_template, {
     enable_debug_logging            = var.enable_user_data_debug_logging
     s3_location_runner_distribution = local.s3_location_runner_distribution

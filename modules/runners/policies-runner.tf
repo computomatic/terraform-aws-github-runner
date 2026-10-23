@@ -61,8 +61,10 @@ resource "aws_iam_role_policy" "describe_tags" {
   policy = file("${path.module}/policies/instance-describe-tags-policy.json")
 }
 
+# The start scripts tag the instance with its runner id only when they register the runner themselves. With ephemeral JIT
+# runners scale-up sets the tag at launch, so the instance gets no permission to tag itself.
 resource "aws_iam_role_policy" "create_tag" {
-  count  = (var.iam_overrides["override_runner_role"] || var.iam_overrides["override_instance_profile"]) ? 0 : 1
+  count  = (var.iam_overrides["override_runner_role"] || var.iam_overrides["override_instance_profile"] || local.jit_ephemeral) ? 0 : 1
   name   = "runner-create-tags"
   role   = aws_iam_role.runner[0].name
   policy = templatefile("${path.module}/policies/instance-create-tags-policy.json", {})

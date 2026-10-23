@@ -103,6 +103,7 @@ resource "aws_iam_role_policy" "pool" {
   policy = templatefile("${path.module}/policies/lambda-pool.json", {
     arn_ssm_parameters_path_config = var.config.arn_ssm_parameters_path_config
     arn_runner_instance_role       = var.config.runner.role.arn
+    ssm_put_parameter_arns         = jsonencode(var.config.ssm_put_parameter_arns)
     github_app_parameter_arns = jsonencode(concat(
       [for p in var.config.github_app_parameters.id : p.arn],
       [for p in var.config.github_app_parameters.key_base64 : p.arn],

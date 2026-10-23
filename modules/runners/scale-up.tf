@@ -125,6 +125,7 @@ resource "aws_iam_role_policy" "scale_up" {
     arn_runner_instance_role = var.iam_overrides["override_runner_role"] ? var.iam_overrides["runner_role_arn"] : aws_iam_role.runner[0].arn
     environment              = var.prefix
     sqs_arn                  = var.sqs_build_queue.arn
+    ssm_put_parameter_arns   = jsonencode(local.ssm_put_parameter_arns)
     github_app_parameter_arns = jsonencode(concat(
       [for p in var.github_app_parameters.id : p.arn],
       [for p in var.github_app_parameters.key_base64 : p.arn],

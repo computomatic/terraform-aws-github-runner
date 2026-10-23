@@ -7,14 +7,39 @@
         "ec2:DescribeImages",
         "ec2:DescribeSnapshots",
         "ec2:DescribeLaunchTemplates",
-        "ec2:DescribeLaunchTemplateVersions",
+        "ec2:DescribeLaunchTemplateVersions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "ec2:DeregisterImage",
-        "ec2:DeleteSnapshot",
-        "ssm:DescribeParameters",
+        "ec2:DeleteSnapshot"
+      ],
+%{ if ami_resource_tag_condition != "" ~}
+      "Condition": ${ami_resource_tag_condition},
+%{ endif ~}
+      "Resource": "*"
+%{ if ssm_parameter_arns != "" ~}
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
         "ssm:GetParameters",
         "ssm:GetParameter"
       ],
+      "Resource": ${ssm_parameter_arns}
+%{ endif ~}
+%{ if ssm_describe_parameters ~}
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeParameters"
+      ],
       "Resource": "*"
+%{ endif ~}
     }
   ]
 }

@@ -25,7 +25,7 @@
                 "ssm:AddTagsToResource",
                 "ssm:PutParameter"
             ],
-            "Resource": "*"
+            "Resource": ${ssm_put_parameter_arns}
         },
         {
           "Effect": "Allow",

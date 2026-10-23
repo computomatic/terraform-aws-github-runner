@@ -72,6 +72,7 @@ variable "config" {
     ami_id_ssm_parameter_name            = string
     ami_id_ssm_parameter_read_policy_arn = string
     arn_ssm_parameters_path_config       = string
+    ssm_put_parameter_arns               = list(string)
     lambda_tags                          = map(string)
     user_agent                           = string
   })

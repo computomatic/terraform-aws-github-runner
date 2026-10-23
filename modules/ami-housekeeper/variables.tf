@@ -163,12 +163,12 @@ variable "cleanup_config" {
   description = <<EOF
     Configuration for AMI cleanup.
 
-    `amiFilters` - Filters to use when searching for AMIs to cleanup. Default filter for images owned by the account and that are available.
+    `amiFilters` - Filters to use when searching for AMIs to cleanup. Default filter for images owned by the account and that are available. Each `tag:<key>` filter also limits the Lambda role to deregistering images and deleting snapshots that carry that tag, so the snapshots must be tagged like their images.
     `dryRun` - If true, no AMIs will be deregistered. Default false.
     `launchTemplateNames` - Launch template names to use when searching for AMIs to cleanup. Default no launch templates.
     `maxItems` - The maximum number of AMIs that will be queried for cleanup. Default no maximum.
     `minimumDaysOld` - Minimum number of days old an AMI must be to be considered for cleanup. Default 30.
-    `ssmParameterNames` - SSM parameter names to use when searching for AMIs to cleanup. This parameter should be set when using SSM to configure the AMI to use. Default no SSM parameters.
+    `ssmParameterNames` - SSM parameter names to use when searching for AMIs to cleanup. This parameter should be set when using SSM to configure the AMI to use. The Lambda role can read only these parameters, unless a name is a wildcard pattern (starts with `*`). Default no SSM parameters.
   EOF
   type = object({
     amiFilters = optional(list(object({

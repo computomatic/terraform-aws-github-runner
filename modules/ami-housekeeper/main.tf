@@ -1,7 +1,29 @@
 locals {
   lambda_zip = var.lambda_zip == null ? "${path.module}/../../lambdas/functions/ami-housekeeper/ami-housekeeper.zip" : var.lambda_zip
   role_path  = var.role_path == null ? "/${var.prefix}/" : var.role_path
+
+  # Scope the role to what the cleanup config lets the Lambda touch. Names starting with `*` are wildcard patterns the
+  # Lambda resolves with DescribeParameters, so they can match any parameter and keep the read on all parameters.
+  ssm_parameter_names    = var.cleanup_config.ssmParameterNames == null ? [] : var.cleanup_config.ssmParameterNames
+  ssm_wildcard_names     = [for n in local.ssm_parameter_names : n if startswith(n, "*")]
+  ssm_explicit_names     = [for n in local.ssm_parameter_names : n if !startswith(n, "*")]
+  ssm_parameter_arn_base = "arn:${var.aws_partition}:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter"
+  ssm_parameter_arns = length(local.ssm_wildcard_names) > 0 ? ["*"] : [
+    for n in local.ssm_explicit_names : startswith(n, "arn:") ? n : "${local.ssm_parameter_arn_base}/${trimprefix(n, "/")}"
+  ]
+
+  # Each `tag:<key>` AMI filter becomes a tag condition on deregistering images and deleting snapshots, so the role can
+  # only delete what the filters select. Snapshots must carry the same tags as their images.
+  ami_filters     = var.cleanup_config.amiFilters == null ? [] : var.cleanup_config.amiFilters
+  ami_tag_filters = [for f in local.ami_filters : f if startswith(f.Name, "tag:")]
+  ami_resource_tags = {
+    for k, v in { for f in local.ami_tag_filters : "ec2:ResourceTag/${trimprefix(f.Name, "tag:")}" => f.Values... } : k => distinct(flatten(v))
+  }
 }
+
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
 
 resource "aws_lambda_function" "ami_housekeeper" {
   s3_bucket         = var.lambda_s3_bucket != null ? var.lambda_s3_bucket : null
@@ -97,7 +119,11 @@ resource "aws_iam_role_policy" "ami_housekeeper" {
   name = "lambda-ami-policy"
   role = aws_iam_role.ami_housekeeper.id
 
-  policy = templatefile("${path.module}/policies/lambda-ami-housekeeper.json", {})
+  policy = templatefile("${path.module}/policies/lambda-ami-housekeeper.json", {
+    ami_resource_tag_condition = length(local.ami_resource_tags) > 0 ? jsonencode({ StringLike = local.ami_resource_tags }) : ""
+    ssm_parameter_arns         = length(local.ssm_parameter_arns) > 0 ? jsonencode(local.ssm_parameter_arns) : ""
+    ssm_describe_parameters    = length(local.ssm_wildcard_names) > 0
+  })
 }
 
 resource "aws_cloudwatch_event_rule" "ami_housekeeper" {
